@@ -1,4 +1,4 @@
-/*! @license Firebase v2.4.0
+/*! @license Firebase v2.4.1
     License: https://www.firebase.com/terms/terms-of-service.html */
 (function(ns) {
   ns.wrapper = function(goog, fb) {
@@ -6,7 +6,7 @@
     var CLOSURE_NO_DEPS = true;
 
     // Sets CLIENT_VERSION manually, since we can't use a closure --define with WHITESPACE_ONLY compilation.
-    var CLIENT_VERSION = '2.4.0';
+    var CLIENT_VERSION = '2.4.1';
     var COMPILED = false;
 var goog = goog || {};
 goog.global = this;
@@ -3982,6 +3982,7 @@ goog.provide("fb.util.promise.Promise");
 goog.require("goog.Promise");
 goog.scope(function() {
   fb.util.promise.Promise = goog.global.Promise || goog.Promise;
+  goog.exportProperty(goog.Promise.prototype, "catch", goog.Promise.prototype.thenCatch);
   fb.util.promise.Deferred = goog.defineClass(null, {constructor:function() {
     var self = this;
     this.resolve = null;
@@ -5532,7 +5533,7 @@ fb.core.util.isChromeExtensionContentScript = function() {
 fb.core.util.isWindowsStoreApp = function() {
   return typeof Windows === "object" && typeof Windows.UI === "object";
 };
-fb.core.util.errorForServerCode = function(code) {
+fb.core.util.errorForServerCode = function(code, query) {
   var reason = "Unknown Error";
   if (code === "too_big") {
     reason = "The data requested exceeds the maximum size " + "that can be accessed with a single request.";
@@ -5545,7 +5546,7 @@ fb.core.util.errorForServerCode = function(code) {
       }
     }
   }
-  var error = new Error(code + ": " + reason);
+  var error = new Error(code + " at " + query.path.toString() + ": " + reason);
   error.code = code.toUpperCase();
   return error;
 };
@@ -9371,7 +9372,10 @@ fb.login.transports.util.extractRedirectCompletionHash = function(hashStr) {
 fb.login.transports.util.replaceRedirectCompletionHash = function() {
   try {
     var exp = new RegExp("&" + fb.login.Constants.REDIR_REQUEST_COMPLETION_KEY + "=([a-zA-z0-9]*)");
-    document.location.hash = document.location.hash.replace(exp, "");
+    var hash = document.location.hash.replace(exp, "");
+    hash = hash.replace(/\?$/, "");
+    hash = hash.replace(/^#+$/, "");
+    document.location.hash = hash;
   } catch (e) {
   }
 };
@@ -10077,6 +10081,9 @@ fb.login.AuthenticationManager.prototype.authWithPopup = function(provider, opt_
       fb.core.util.callUserCallback(opt_onComplete, fb.login.Errors.get("TRANSPORT_UNAVAILABLE"));
     }, 0);
     return;
+  }
+  if (provider === "github") {
+    width = 1025;
   }
   requestInfo.transportOptions["window_features"] = "" + "menubar=yes," + "modal=yes," + "alwaysRaised=yes" + "location=yes," + "resizable=yes," + "scrollbars=yes," + "status=yes," + "height=" + height + "," + "width=" + width + "," + "top=" + (typeof screen === "object" ? (screen["height"] - height) * .5 : 0) + "," + "left=" + (typeof screen === "object" ? (screen["width"] - width) * .5 : 0);
   requestInfo.transportOptions["relay_url"] = fb.login.transports.util.getPopupChannelUrl(this.repoInfo_.namespace);
@@ -11441,7 +11448,7 @@ fb.core.PersistentConnection = goog.defineClass(null, {constructor:function(repo
     this.maxReconnectDelay_ = RECONNECT_MAX_DELAY_FOR_ADMINS;
   }
 }, unauth:function(onComplete) {
-  delete this.credential_;
+  this.credential_ = null;
   if (this.connected_) {
     this.sendRequest("unauth", {}, function(result) {
       var status = result["s"];
@@ -11458,7 +11465,7 @@ fb.core.PersistentConnection = goog.defineClass(null, {constructor:function(repo
       var status = res["s"];
       var data = res["d"] || "error";
       if (status !== "ok" && self.credential_ === authdata) {
-        delete self.credential_;
+        self.credential_ = null;
       }
       if (!authdata.firstRequestSent) {
         authdata.firstRequestSent = true;
@@ -11759,7 +11766,7 @@ fb.core.PersistentConnection = goog.defineClass(null, {constructor:function(repo
   return listen;
 }, onAuthRevoked_:function(statusCode, explanation) {
   var cred = this.credential_;
-  delete this.credential_;
+  this.credential_ = null;
   if (cred && cred.cancelCallback) {
     cred.cancelCallback(statusCode, explanation);
   }
@@ -12531,7 +12538,7 @@ fb.core.SyncTree.prototype.createListenerForView_ = function(view) {
         return self.applyListenComplete(query.path);
       }
     } else {
-      var error = fb.core.util.errorForServerCode(status);
+      var error = fb.core.util.errorForServerCode(status, query);
       return self.removeEventRegistration(query, null, error);
     }
   }};
