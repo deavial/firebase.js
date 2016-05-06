@@ -1,4 +1,4 @@
-/*! @license Firebase v1.1.2 - License: https://www.firebase.com/terms/terms-of-service.html */ var CLOSURE_NO_DEPS = true; var COMPILED = false;
+/*! @license Firebase v1.1.3 - License: https://www.firebase.com/terms/terms-of-service.html */ var CLOSURE_NO_DEPS = true; var COMPILED = false;
 var goog = goog || {};
 goog.global = this;
 goog.global.CLOSURE_UNCOMPILED_DEFINES;
@@ -7253,7 +7253,7 @@ fb.login.transports.Popup.prototype.open = function(url, params, cb) {
           }
         } else {
           if (d["a"] === "response") {
-            cleanup(d.forceKeepWindowOpen);
+            cleanup(d["forceKeepWindowOpen"]);
             if (cb) {
               cb(null, d["d"]);
               cb = null;
@@ -7571,7 +7571,7 @@ fb.login.AuthenticationManager.prototype.handleBadAuthStatus_ = function() {
 };
 fb.login.AuthenticationManager.prototype.authWithCredential = function(provider, opt_params, opt_options, opt_onComplete) {
   this.checkServerSettingsOrThrow();
-  var transports = [fb.login.transports.XHR, fb.login.transports.JSONP], requestInfo = fb.login.RequestInfo.fromParams(opt_params);
+  var transports = [fb.login.transports.XHR, fb.login.transports.JSONP], requestInfo = new fb.login.RequestInfo(opt_options, {}, opt_params);
   this.authWithTransports_(transports, "/auth/" + provider, requestInfo, opt_onComplete);
 };
 fb.login.AuthenticationManager.prototype.authWithPopup = function(provider, opt_params, opt_onComplete) {
@@ -10078,4 +10078,4 @@ Firebase.ServerValue = {"TIMESTAMP":{".sv":"timestamp"}};
 Firebase.SDK_VERSION = CLIENT_VERSION;
 Firebase.INTERNAL = fb.api.INTERNAL;
 Firebase.Context = fb.core.RepoManager;
-; Firebase.SDK_VERSION='1.1.2';
+; Firebase.SDK_VERSION='1.1.3';
